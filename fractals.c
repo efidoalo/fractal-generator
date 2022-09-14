@@ -21,6 +21,8 @@
 #include <stdarg.h>
 #include <mpfr.h>
 #include <glib-object.h>
+#include <gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf.h>
+#include <glib.h>
 
 struct point
 {
@@ -668,6 +670,23 @@ void start_koch_curve_draw(GtkButton *button, void *da)
 	}
 }
 
+void write_mandelbrot_to_disk(GtkButton *button, void *write_to_file_grid)
+{	
+	
+	GtkWidget *options_stack = gtk_widget_get_parent(write_to_file_grid);
+	
+	GtkWidget *main_grid = gtk_widget_get_parent(options_stack);
+	GdkWindow *window = gtk_widget_get_parent_window(main_grid);
+	GtkWidget *file_name_entry = gtk_grid_get_child_at(write_to_file_grid, 0, 0); 
+	char *file_name = gtk_entry_get_text(file_name_entry);
+	if (!file_name) {
+		file_name = "mandelbrot image";
+	}
+	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_window(window, 0, 25, 600, 500);
+	GError *err = NULL;
+	gdk_pixbuf_save(pixbuf, file_name, "png", &err, NULL); 
+}
+
 static void
 activate (GtkApplication* app,
           gpointer        user_data)
@@ -691,6 +710,9 @@ activate (GtkApplication* app,
 	GtkWidget *significand_length_specifier;
 	GtkWidget *threshold_specifier;
 	GtkWidget *mandelbrot_start_button;
+	GtkWidget *write_to_file_grid;
+	GtkWidget *file_name;
+	GtkWidget *write_to_file_button;
 	GtkWidget *mandelbrot_text_buffer;
 	GtkWidget *mandelbrot_text_view;
 
@@ -765,6 +787,14 @@ activate (GtkApplication* app,
 	gtk_entry_set_max_length(threshold_specifier, 0);
 	gtk_entry_set_placeholder_text(threshold_specifier, "threshold");
 	mandelbrot_start_button = gtk_button_new_with_label("Draw mandelbrot set");
+	write_to_file_grid = gtk_grid_new();
+	file_name = gtk_entry_new();
+	gtk_entry_set_placeholder_text(file_name, "file name");
+	write_to_file_button = gtk_button_new_with_label("Save image");
+	gtk_grid_attach(write_to_file_grid, file_name, 0, 0, 1, 1);
+	gtk_grid_attach(write_to_file_grid, write_to_file_button, 0, 1, 1, 1);
+	g_signal_connect(write_to_file_button, "clicked", G_CALLBACK(write_mandelbrot_to_disk), write_to_file_grid);
+
 	mandelbrot_text_buffer = gtk_text_buffer_new(options_texttagtable);
 	char *mandelbrot_guidance = "Threshold must be greater\n"
 		                    "than 3.0. Once a mandelbrot\n"
@@ -797,7 +827,8 @@ activate (GtkApplication* app,
 	gtk_grid_attach(mandelbrot_options_grid, significand_length_specifier, 0, 1, 1, 1);
 	gtk_grid_attach(mandelbrot_options_grid, threshold_specifier, 0, 2, 1, 1);
 	gtk_grid_attach(mandelbrot_options_grid, mandelbrot_start_button, 0, 3, 1, 1);
-	gtk_grid_attach(mandelbrot_options_grid, mandelbrot_text_view, 0, 4, 1, 1);
+	gtk_grid_attach(mandelbrot_options_grid, write_to_file_grid, 0, 4, 1, 1);
+	gtk_grid_attach(mandelbrot_options_grid, mandelbrot_text_view, 0, 5, 1, 1);
 	gtk_stack_add_titled(options_stack, mandelbrot_options_grid, "mandelbrot options", "mandelbrot");
 
 	tree_canopy_options_grid = gtk_grid_new();
